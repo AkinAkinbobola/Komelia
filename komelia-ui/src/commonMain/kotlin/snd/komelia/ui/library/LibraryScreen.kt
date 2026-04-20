@@ -42,9 +42,12 @@ import snd.komelia.ui.common.components.ErrorContent
 import snd.komelia.ui.common.components.LoadingMaxSizeIndicator
 import snd.komelia.ui.common.menus.LibraryActionsMenu
 import snd.komelia.ui.common.menus.LibraryMenuActions
+import snd.komelia.ui.library.LibraryTab.BOOKS
 import snd.komelia.ui.library.LibraryTab.COLLECTIONS
 import snd.komelia.ui.library.LibraryTab.READ_LISTS
 import snd.komelia.ui.library.LibraryTab.SERIES
+import snd.komelia.ui.book.bookScreen
+import snd.komelia.ui.library.view.LibraryBooksContent
 import snd.komelia.ui.library.view.LibraryCollectionsContent
 import snd.komelia.ui.library.view.LibraryReadListsContent
 import snd.komelia.ui.platform.BackPressHandler
@@ -96,7 +99,8 @@ class LibraryScreen(
                                 readListsCount = vm.readListsCount,
                                 onBrowseClick = vm::toBrowseTab,
                                 onCollectionsClick = vm::toCollectionsTab,
-                                onReadListsClick = vm::toReadListsTab
+                                onReadListsClick = vm::toReadListsTab,
+                                onBooksClick = vm::toBooksTab
                             )
                         }
 
@@ -104,6 +108,7 @@ class LibraryScreen(
                             SERIES -> BrowseTab(vm.seriesTabState)
                             COLLECTIONS -> CollectionsTab(vm.collectionsTabState)
                             READ_LISTS -> ReadListsTab(vm.readListsTabState)
+                            BOOKS -> BooksTab(vm.booksTabState)
                         }
                     }
                 }
@@ -227,6 +232,44 @@ class LibraryScreen(
         }
     }
 
+    @Composable
+    private fun BooksTab(booksTabState: LibraryBooksTabState) {
+        val navigator = LocalNavigator.currentOrThrow
+        LaunchedEffect(libraryId) { booksTabState.initialize() }
+        DisposableEffect(Unit) {
+            booksTabState.startKomgaEventHandler()
+            onDispose { booksTabState.stopKomgaEventHandler() }
+        }
+
+        when (val state = booksTabState.state.collectAsState().value) {
+            Uninitialized -> LoadingMaxSizeIndicator()
+            is Error -> ErrorContent(
+                message = state.exception.message ?: "Unknown Error",
+                onReload = booksTabState::reload
+            )
+
+            else -> {
+                val loading = state is Loading
+                LibraryBooksContent(
+                    books = booksTabState.books,
+                    booksTotalCount = booksTabState.totalBooks,
+                    onBookClick = { navigator.push(bookScreen(it)) },
+                    onBookReadClick = { book, _ -> navigator.push(bookScreen(book)) },
+                    bookMenuActions = booksTabState.bookMenuActions(),
+                    isLoading = loading,
+
+                    totalPages = booksTabState.totalPages,
+                    currentPage = booksTabState.currentPage,
+                    pageSize = booksTabState.pageSize,
+                    onPageChange = booksTabState::onPageChange,
+                    onPageSizeChange = booksTabState::onPageSizeChange,
+
+                    minSize = booksTabState.cardWidth.collectAsState().value
+                )
+            }
+        }
+    }
+
 }
 
 @Composable
@@ -239,6 +282,7 @@ fun LibraryToolBar(
     onBrowseClick: () -> Unit,
     onCollectionsClick: () -> Unit,
     onReadListsClick: () -> Unit,
+    onBooksClick: () -> Unit,
 ) {
 
     val chipColors = AppFilterChipDefaults.filterChipColors()
@@ -276,16 +320,25 @@ fun LibraryToolBar(
         }
 
 
-        if (collectionsCount > 0 || readListsCount > 0)
-            item {
-                FilterChip(
-                    onClick = onBrowseClick,
-                    selected = currentTab == SERIES,
-                    label = { Text("Series") },
-                    colors = chipColors,
-                    border = null,
-                )
-            }
+        item {
+            FilterChip(
+                onClick = onBrowseClick,
+                selected = currentTab == SERIES,
+                label = { Text("Series") },
+                colors = chipColors,
+                border = null,
+            )
+        }
+
+        item {
+            FilterChip(
+                onClick = onBooksClick,
+                selected = currentTab == BOOKS,
+                label = { Text("Books") },
+                colors = chipColors,
+                border = null,
+            )
+        }
 
         if (collectionsCount > 0)
             item {

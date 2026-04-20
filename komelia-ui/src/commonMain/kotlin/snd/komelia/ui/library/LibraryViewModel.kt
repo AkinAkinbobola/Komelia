@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import snd.komelia.AppNotifications
+import snd.komelia.komga.api.KomgaBookApi
 import snd.komelia.komga.api.KomgaCollectionsApi
 import snd.komelia.komga.api.KomgaLibraryApi
 import snd.komelia.komga.api.KomgaReadListApi
@@ -35,6 +36,7 @@ import snd.komelia.ui.LoadState.Success
 import snd.komelia.ui.LoadState.Uninitialized
 import snd.komelia.ui.common.cards.defaultCardWidth
 import snd.komelia.ui.common.menus.LibraryMenuActions
+import snd.komelia.ui.library.LibraryTab.BOOKS
 import snd.komelia.ui.library.LibraryTab.COLLECTIONS
 import snd.komelia.ui.library.LibraryTab.READ_LISTS
 import snd.komelia.ui.library.LibraryTab.SERIES
@@ -50,6 +52,7 @@ class LibraryViewModel(
     private val libraryApi: KomgaLibraryApi,
     private val collectionApi: KomgaCollectionsApi,
     private val readListsApi: KomgaReadListApi,
+    private val bookApi: KomgaBookApi,
     private val taskEmitter: OfflineTaskEmitter,
     seriesApi: KomgaSeriesApi,
     referentialApi: KomgaReferentialApi,
@@ -96,6 +99,14 @@ class LibraryViewModel(
         library = library,
         cardWidth = cardWidth
     )
+    val booksTabState = LibraryBooksTabState(
+        bookApi = bookApi,
+        appNotifications = appNotifications,
+        events = komgaEvents,
+        library = library,
+        taskEmitter = taskEmitter,
+        cardWidth = cardWidth
+    )
     val showToolbar = seriesTabState.isInEditMode.map { !it }
         .stateIn(screenModelScope, SharingStarted.Eagerly, true)
 
@@ -122,6 +133,7 @@ class LibraryViewModel(
                 SERIES -> seriesTabState.reload()
                 COLLECTIONS -> collectionsTabState.reload()
                 READ_LISTS -> readListsTabState.reload()
+                BOOKS -> booksTabState.reload()
             }
         }
     }
@@ -154,6 +166,10 @@ class LibraryViewModel(
         currentTab = READ_LISTS
     }
 
+    fun toBooksTab() {
+        currentTab = BOOKS
+    }
+
     fun libraryActions() = LibraryMenuActions(libraryApi, appNotifications, taskEmitter, screenModelScope)
 
     fun stopKomgaEventHandler() {
@@ -180,6 +196,7 @@ class LibraryViewModel(
 enum class LibraryTab {
     SERIES,
     COLLECTIONS,
-    READ_LISTS
+    READ_LISTS,
+    BOOKS
 }
 

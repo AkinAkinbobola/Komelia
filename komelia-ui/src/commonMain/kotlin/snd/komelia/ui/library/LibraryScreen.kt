@@ -50,6 +50,7 @@ import snd.komelia.ui.book.bookScreen
 import snd.komelia.ui.library.view.LibraryBooksContent
 import snd.komelia.ui.library.view.LibraryCollectionsContent
 import snd.komelia.ui.library.view.LibraryReadListsContent
+import snd.komelia.ui.reader.readerScreen
 import snd.komelia.ui.platform.BackPressHandler
 import snd.komelia.ui.platform.ScreenPullToRefreshBox
 import snd.komelia.ui.readlist.ReadListScreen
@@ -254,7 +255,7 @@ class LibraryScreen(
                     books = booksTabState.books,
                     booksTotalCount = booksTabState.totalBooks,
                     onBookClick = { navigator.push(bookScreen(it)) },
-                    onBookReadClick = { book, _ -> navigator.push(bookScreen(book)) },
+                    onBookReadClick = { book, markProgress -> navigator.parent?.push(readerScreen(book, markProgress)) },
                     bookMenuActions = booksTabState.bookMenuActions(),
                     isLoading = loading,
 
